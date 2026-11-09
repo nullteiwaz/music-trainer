@@ -366,44 +366,48 @@
                 ]
             },
             bass: {
-                standard: [ // 五线谱内 (E2 ~ F3)
-                    { key: 'e/2', name: 'E', freq: 164.81 },
-                    { key: 'f/2', name: 'F', freq: 174.61 },
-                    { key: 'g/2', name: 'G', freq: 196.00 },
-                    { key: 'a/2', name: 'A', freq: 220.00 },
-                    { key: 'b/2', name: 'B', freq: 246.94 },
-                    { key: 'c/3', name: 'C', freq: 261.63 },
-                    { key: 'd/3', name: 'D', freq: 293.66 },
-                    { key: 'e/3', name: 'E', freq: 329.63 },
-                    { key: 'f/3', name: 'F', freq: 349.23 }
+                standard: [ // 五线谱内 (G2 ~ A3)
+                    { key: 'g/2', name: 'G', freq: 98.00 },
+                    { key: 'a/2', name: 'A', freq: 110.00 },
+                    { key: 'b/2', name: 'B', freq: 123.47 },
+                    { key: 'c/3', name: 'C', freq: 130.81 },
+                    { key: 'd/3', name: 'D', freq: 146.83 },
+                    { key: 'e/3', name: 'E', freq: 164.81 },
+                    { key: 'f/3', name: 'F', freq: 174.61 },
+                    { key: 'g/3', name: 'G', freq: 196.00 },
+                    { key: 'a/3', name: 'A', freq: 220.00 }
                 ],
-                ledger: [ // 包含加线：下加一线(C2) + 五线谱内 + 上加一线(G3)
-                    { key: 'c/2', name: 'C', freq: 130.81 }, // 下加一线
-                    { key: 'e/2', name: 'E', freq: 164.81 },
-                    { key: 'f/2', name: 'F', freq: 174.61 },
-                    { key: 'g/2', name: 'G', freq: 196.00 },
-                    { key: 'a/2', name: 'A', freq: 220.00 },
-                    { key: 'b/2', name: 'B', freq: 246.94 },
-                    { key: 'c/3', name: 'C', freq: 261.63 },
-                    { key: 'd/3', name: 'D', freq: 293.66 },
-                    { key: 'e/3', name: 'E', freq: 329.63 },
-                    { key: 'f/3', name: 'F', freq: 349.23 },
-                    { key: 'g/3', name: 'G', freq: 392.00 }  // 上加一线
+                ledger: [ // 上下各一条加线 (E2 ~ C4)
+                    { key: 'e/2', name: 'E', freq: 82.41 },
+                    { key: 'f/2', name: 'F', freq: 87.31 },
+                    { key: 'g/2', name: 'G', freq: 98.00 },
+                    { key: 'a/2', name: 'A', freq: 110.00 },
+                    { key: 'b/2', name: 'B', freq: 123.47 },
+                    { key: 'c/3', name: 'C', freq: 130.81 },
+                    { key: 'd/3', name: 'D', freq: 146.83 },
+                    { key: 'e/3', name: 'E', freq: 164.81 },
+                    { key: 'f/3', name: 'F', freq: 174.61 },
+                    { key: 'g/3', name: 'G', freq: 196.00 },
+                    { key: 'a/3', name: 'A', freq: 220.00 },
+                    { key: 'b/3', name: 'B', freq: 246.94 },
+                    { key: 'c/4', name: 'C', freq: 261.63 }
                 ],
-                all: [ // 扩展全音域
-                    { key: 'c/2', name: 'C', freq: 130.81 },
-                    { key: 'd/2', name: 'D', freq: 146.83 },
-                    { key: 'e/2', name: 'E', freq: 164.81 },
-                    { key: 'f/2', name: 'F', freq: 174.61 },
-                    { key: 'g/2', name: 'G', freq: 196.00 },
-                    { key: 'a/2', name: 'A', freq: 220.00 },
-                    { key: 'b/2', name: 'B', freq: 246.94 },
-                    { key: 'c/3', name: 'C', freq: 261.63 },
-                    { key: 'd/3', name: 'D', freq: 293.66 },
-                    { key: 'e/3', name: 'E', freq: 329.63 },
-                    { key: 'f/3', name: 'F', freq: 349.23 },
-                    { key: 'g/3', name: 'G', freq: 392.00 },
-                    { key: 'a/3', name: 'A', freq: 440.00 }
+                all: [ // 扩展全音域 (C2 ~ C4)
+                    { key: 'c/2', name: 'C', freq: 65.41 },
+                    { key: 'd/2', name: 'D', freq: 73.42 },
+                    { key: 'e/2', name: 'E', freq: 82.41 },
+                    { key: 'f/2', name: 'F', freq: 87.31 },
+                    { key: 'g/2', name: 'G', freq: 98.00 },
+                    { key: 'a/2', name: 'A', freq: 110.00 },
+                    { key: 'b/2', name: 'B', freq: 123.47 },
+                    { key: 'c/3', name: 'C', freq: 130.81 },
+                    { key: 'd/3', name: 'D', freq: 146.83 },
+                    { key: 'e/3', name: 'E', freq: 164.81 },
+                    { key: 'f/3', name: 'F', freq: 174.61 },
+                    { key: 'g/3', name: 'G', freq: 196.00 },
+                    { key: 'a/3', name: 'A', freq: 220.00 },
+                    { key: 'b/3', name: 'B', freq: 246.94 },
+                    { key: 'c/4', name: 'C', freq: 261.63 }
                 ]
             }
         };
