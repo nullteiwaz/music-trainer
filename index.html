@@ -157,6 +157,16 @@
         }
         .correct { color: #16a34a; }
         .wrong { color: #dc2626; }
+        @media (max-width: 600px), (max-height: 600px) and (pointer: coarse) {
+            body { align-items: flex-start; }
+            .container { padding: 12px; }
+            #staff-container {
+                height: auto;
+                justify-content: flex-start;
+                overflow-x: auto;
+            }
+            #vexflow-canvas { flex: none; }
+        }
     </style>
 </head>
 <body>
@@ -236,6 +246,8 @@
         let playableNotes = []; 
         let allElements = [];   
         let currentIndex = 0;  
+        let currentScore = null;
+        const mobileLayout = () => window.matchMedia('(max-width: 600px), (max-height: 600px) and (pointer: coarse)').matches;
 
         let audioCtx = null;
         function initAudio() {
@@ -447,7 +459,8 @@
             const hasSixteenth = Array.from(document.querySelectorAll('input[name="element"]:checked'))
                 .some(cb => cb.value.includes('16'));
 
-            const totalMeasures = hasSixteenth ? 2 : 4;
+            const mobile = mobileLayout();
+            const totalMeasures = mobile || hasSixteenth ? 2 : 4;
 
             allElements = [];
             playableNotes = [];
@@ -466,6 +479,7 @@
             }
 
             updateProgressText();
+            currentScore = { clef, measuresData, totalMeasures, mobile };
             renderStaff(clef, measuresData, totalMeasures);
         }
 
@@ -475,18 +489,23 @@
 
             try {
                 const VF = Vex.Flow;
+                const mobile = mobileLayout();
+                const scoreWidth = mobile
+                    ? Math.max(document.getElementById('staff-container').clientWidth - 4,
+                        measuresData.some(measure => measure.some(item => item.duration === '16')) ? 440 : 340)
+                    : 900;
                 const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-                renderer.resize(900, 150);
+                renderer.resize(scoreWidth, mobile ? totalMeasures * 150 : 150);
                 const context = renderer.getContext();
 
                 let startX = 15;
-                const totalWidth = 865;
-                const measureWidth = totalWidth / totalMeasures;
+                const measureWidth = mobile ? scoreWidth - 30 : 865 / totalMeasures;
 
                 measuresData.forEach((measureElems, index) => {
-                    const stave = new VF.Stave(startX, 15, measureWidth);
+                    const stave = new VF.Stave(mobile ? 15 : startX,
+                        mobile ? 15 + index * 150 : 15, measureWidth);
                     
-                    if (index === 0) {
+                    if (mobile || index === 0) {
                         stave.addClef(clef);
                     }
                     if (index === totalMeasures - 1) {
@@ -599,6 +618,16 @@
         document.getElementById('staff-container').addEventListener('click', function() {
             initAudio();
             playAllMeasures();
+        });
+
+        window.addEventListener('resize', function() {
+            if (currentScore) {
+                if (mobileLayout() !== currentScore.mobile) {
+                    nextLine();
+                } else {
+                    renderStaff(currentScore.clef, currentScore.measuresData, currentScore.totalMeasures);
+                }
+            }
         });
 
         nextLine();
