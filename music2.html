@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五线谱随机读谱练习器 (修复加线版)</title>
+    <!-- 引入专业乐谱渲染库 VexFlow -->
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@1.2.93/releases/vexflow-min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 980px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .stats span b {
+            color: #2563eb;
+        }
+        .settings-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            background: #f1f5f9;
+            padding: 14px;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .settings-panel select {
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            outline: none;
+            font-size: 13px;
+            background: #fff;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            user-select: none;
+        }
+        #staff-container {
+            width: 100%;
+            height: 170px;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        #staff-container:hover {
+            border-color: #94a3b8;
+        }
+        .tip {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+        .progress-indicator {
+            font-size: 15px;
+            font-weight: bold;
+            color: #475569;
+            margin-bottom: 15px;
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .btn-note {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-note:hover {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .btn-note:active {
+            transform: translateY(0);
+        }
+        #feedback {
+            font-size: 16px;
+            height: 24px;
+            font-weight: bold;
+        }
+        .correct { color: #16a34a; }
+        .wrong { color: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>五线谱读谱闪卡练习 (修复加线版)</h1>
+    
+    <div class="stats">
+        <span>总题数: <b id="total-count">0</b></span>
+        <span>正确率: <b id="accuracy">0%</b></span>
+        <span>当前连击: <b id="streak">0</b></span>
+    </div>
+
+    <!-- 控制设置面板 -->
+    <div class="settings-panel">
+        <div class="settings-row">
+            <div class="settings-group">
+                <label for="clef-select">谱号：</label>
+                <select id="clef-select">
+                    <option value="treble">高音谱号 (Treble)</option>
+                    <option value="bass">低音谱号 (Bass)</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="range-select">音符范围：</label>
+                <select id="range-select">
+                    <option value="standard">标准音域 (五线谱内)</option>
+                    <option value="ledger" selected>包含加线 (含上下加线)</option>
+                    <option value="all">扩展全音域 (宽广音区)</option>
+                </select>
+            </div>
+        </div>
+        <div class="settings-row">
+            <span style="font-weight: 500; color: #475569;">选择允许出现的音符与休止符：</span>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="element" value="note-w"> 全音符(4拍)</label>
+                <label><input type="checkbox" name="element" value="note-h"> 二分音符(2拍)</label>
+                <label><input type="checkbox" name="element" value="note-q" checked> 四分音符(1拍)</label>
+                <label><input type="checkbox" name="element" value="note-8" checked> 八分音符(0.5拍)</label>
+                <label><input type="checkbox" name="element" value="note-16"> 十六分音符(0.25拍)</label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-w"> 全休止符</label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-h"> 二分休止符</label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-q" checked> 四分休止符</label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-8"> 八分休止符</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 宽幅专业 VexFlow 乐谱渲染区 -->
+    <div id="staff-container" title="点击可连续重听发音">
+        <div id="vexflow-canvas"></div>
+    </div>
+    
+    <div class="progress-indicator" id="progress-text">请依次输入乐谱中的音符</div>
+    <div class="tip">💡 提示：加线模式现已正确包含上加线与下加线音符</div>
+
+    <!-- 答题按钮 -->
+    <div class="buttons">
+        <button class="btn-note" data-note="C">C</button>
+        <button class="btn-note" data-note="D">D</button>
+        <button class="btn-note" data-note="E">E</button>
+        <button class="btn-note" data-note="F">F</button>
+        <button class="btn-note" data-note="G">G</button>
+        <button class="btn-note" data-note="A">A</button>
+        <button class="btn-note" data-note="B">B</button>
+    </div>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let total = 0;
+        let correct = 0;
+        let streak = 0;
+
+        let playableNotes = []; 
+        let allElements = [];   
+        let currentIndex = 0;  
+
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, duration = 0.4) {
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            const now = audioCtx.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function playAllMeasures() {
+            let delay = 0;
+            allElements.forEach((el) => {
+                let interval = 400;
+                if (el.duration === 'w') interval = 1200;
+                else if (el.duration === 'h') interval = 800;
+                else if (el.duration === 'q') interval = 400;
+                else if (el.duration === '8') interval = 200;
+                else if (el.duration === '16') interval = 100;
+
+                if (!el.isRest) {
+                    let duration = interval * 0.9;
+                    setTimeout(() => {
+                        playTone(el.freq, duration / 1000);
+                    }, delay);
+                }
+                delay += interval;
+            });
+        }
+
+        const noteFrequencies = {
+            'C': 261.63, 'D': 293.66, 'E': 329.63,
+            'F': 349.23, 'G': 392.00, 'A': 440.00, 'B': 493.88
+        };
+
+        const notePools = {
+            treble: {
+                standard: [ // 五线谱内 (E4 ~ F5)
+                    { key: 'e/4', name: 'E', freq: 329.63 },
+                    { key: 'f/4', name: 'F', freq: 349.23 },
+                    { key: 'g/4', name: 'G', freq: 392.00 },
+                    { key: 'a/4', name: 'A', freq: 440.00 },
+                    { key: 'b/4', name: 'B', freq: 493.88 },
+                    { key: 'c/5', name: 'C', freq: 523.25 },
+                    { key: 'd/5', name: 'D', freq: 587.33 },
+                    { key: 'e/5', name: 'E', freq: 659.25 },
+                    { key: 'f/5', name: 'F', freq: 698.46 }
+                ],
+                ledger: [ // 包含加线：下加一线(C4) + 五线谱内 + 上加一线(A5)
+                    { key: 'c/4', name: 'C', freq: 261.63 },
+                    { key: 'd/4', name: 'D', freq: 293.66 },
+                    { key: 'e/4', name: 'E', freq: 329.63 },
+                    { key: 'f/4', name: 'F', freq: 349.23 },
+                    { key: 'g/4', name: 'G', freq: 392.00 },
+                    { key: 'a/4', name: 'A', freq: 440.00 },
+                    { key: 'b/4', name: 'B', freq: 493.88 },
+                    { key: 'c/5', name: 'C', freq: 523.25 },
+                    { key: 'd/5', name: 'D', freq: 587.33 },
+                    { key: 'e/5', name: 'E', freq: 659.25 },
+                    { key: 'f/5', name: 'F', freq: 698.46 },
+                    { key: 'g/5', name: 'G', freq: 783.99 },
+                    { key: 'a/5', name: 'A', freq: 880.00 }  // 上加一线
+                ],
+                all: [ // 扩展全音域
+                    { key: 'a/3', name: 'A', freq: 220.00 },
+                    { key: 'b/3', name: 'B', freq: 246.94 },
+                    { key: 'c/4', name: 'C', freq: 261.63 },
+                    { key: 'd/4', name: 'D', freq: 293.66 },
+                    { key: 'e/4', name: 'E', freq: 329.63 },
+                    { key: 'f/4', name: 'F', freq: 349.23 },
+                    { key: 'g/4', name: 'G', freq: 392.00 },
+                    { key: 'a/4', name: 'A', freq: 440.00 },
+                    { key: 'b/4', name: 'B', freq: 493.88 },
+                    { key: 'c/5', name: 'C', freq: 523.25 },
+                    { key: 'd/5', name: 'D', freq: 587.33 },
+                    { key: 'e/5', name: 'E', freq: 659.25 },
+                    { key: 'f/5', name: 'F', freq: 698.46 },
+                    { key: 'g/5', name: 'G', freq: 783.99 },
+                    { key: 'a/5', name: 'A', freq: 880.00 }
+                ]
+            },
+            bass: {
+                standard: [ // 五线谱内 (E2 ~ F3)
+                    { key: 'e/2', name: 'E', freq: 164.81 },
+                    { key: 'f/2', name: 'F', freq: 174.61 },
+                    { key: 'g/2', name: 'G', freq: 196.00 },
+                    { key: 'a/2', name: 'A', freq: 220.00 },
+                    { key: 'b/2', name: 'B', freq: 246.94 },
+                    { key: 'c/3', name: 'C', freq: 261.63 },
+                    { key: 'd/3', name: 'D', freq: 293.66 },
+                    { key: 'e/3', name: 'E', freq: 329.63 },
+                    { key: 'f/3', name: 'F', freq: 349.23 }
+                ],
+                ledger: [ // 包含加线：下加一线(C2) + 五线谱内 + 上加一线(G3)
+                    { key: 'c/2', name: 'C', freq: 130.81 }, // 下加一线
+                    { key: 'e/2', name: 'E', freq: 164.81 },
+                    { key: 'f/2', name: 'F', freq: 174.61 },
+                    { key: 'g/2', name: 'G', freq: 196.00 },
+                    { key: 'a/2', name: 'A', freq: 220.00 },
+                    { key: 'b/2', name: 'B', freq: 246.94 },
+                    { key: 'c/3', name: 'C', freq: 261.63 },
+                    { key: 'd/3', name: 'D', freq: 293.66 },
+                    { key: 'e/3', name: 'E', freq: 329.63 },
+                    { key: 'f/3', name: 'F', freq: 349.23 },
+                    { key: 'g/3', name: 'G', freq: 392.00 }  // 上加一线
+                ],
+                all: [ // 扩展全音域
+                    { key: 'c/2', name: 'C', freq: 130.81 },
+                    { key: 'd/2', name: 'D', freq: 146.83 },
+                    { key: 'e/2', name: 'E', freq: 164.81 },
+                    { key: 'f/2', name: 'F', freq: 174.61 },
+                    { key: 'g/2', name: 'G', freq: 196.00 },
+                    { key: 'a/2', name: 'A', freq: 220.00 },
+                    { key: 'b/2', name: 'B', freq: 246.94 },
+                    { key: 'c/3', name: 'C', freq: 261.63 },
+                    { key: 'd/3', name: 'D', freq: 293.66 },
+                    { key: 'e/3', name: 'E', freq: 329.63 },
+                    { key: 'f/3', name: 'F', freq: 349.23 },
+                    { key: 'g/3', name: 'G', freq: 392.00 },
+                    { key: 'a/3', name: 'A', freq: 440.00 }
+                ]
+            }
+        };
+
+        const durationConfig = {
+            'w': { beats: 4 },
+            'h': { beats: 2 },
+            'q': { beats: 1 },
+            '8': { beats: 0.5 },
+            '16': { beats: 0.25 }
+        };
+
+        function generateSingleMeasure(pool) {
+            const checkedBoxes = document.querySelectorAll('input[name="element"]:checked');
+            let selectedOptions = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedOptions.length === 0) {
+                selectedOptions = ['note-q']; 
+            }
+
+            let measureElements = [];
+            let totalBeats = 0;
+
+            while (totalBeats < 4) {
+                let validOptions = selectedOptions.filter(opt => {
+                    let durKey = opt.split('-')[1];
+                    return totalBeats + durationConfig[durKey].beats <= 4;
+                });
+
+                if (validOptions.length === 0) {
+                    validOptions = [selectedOptions[0]];
+                }
+
+                let chosenOpt = validOptions[Math.floor(Math.random() * validOptions.length)];
+                let [type, durKey] = chosenOpt.split('-');
+
+                if (type === 'note') {
+                    const item = pool[Math.floor(Math.random() * pool.length)];
+                    measureElements.push({
+                        isRest: false,
+                        key: item.key,
+                        name: item.name,
+                        freq: item.freq,
+                        duration: durKey
+                    });
+                } else {
+                    measureElements.push({
+                        isRest: true,
+                        key: 'b/4', 
+                        duration: durKey + 'r' 
+                    });
+                }
+                totalBeats += durationConfig[durKey].beats;
+            }
+            return measureElements;
+        }
+
+        function nextLine() {
+            document.getElementById('feedback').innerText = '';
+            currentIndex = 0;
+            const clef = document.getElementById('clef-select').value;
+            const range = document.getElementById('range-select').value;
+            
+            const pool = notePools[clef][range];
+
+            const hasSixteenth = Array.from(document.querySelectorAll('input[name="element"]:checked'))
+                .some(cb => cb.value.includes('16'));
+
+            const totalMeasures = hasSixteenth ? 2 : 4;
+
+            allElements = [];
+            playableNotes = [];
+            let measuresData = [];
+
+            for (let m = 0; m < totalMeasures; m++) {
+                let measureElems = generateSingleMeasure(pool);
+                measuresData.push(measureElems);
+                
+                measureElems.forEach(el => {
+                    allElements.push(el);
+                    if (!el.isRest) {
+                        playableNotes.push(el); 
+                    }
+                });
+            }
+
+            updateProgressText();
+            renderStaff(clef, measuresData, totalMeasures);
+        }
+
+        function renderStaff(clef, measuresData, totalMeasures) {
+            const container = document.getElementById('vexflow-canvas');
+            container.innerHTML = '';
+
+            try {
+                const VF = Vex.Flow;
+                const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+                renderer.resize(900, 150);
+                const context = renderer.getContext();
+
+                let startX = 15;
+                const totalWidth = 865;
+                const measureWidth = totalWidth / totalMeasures;
+
+                measuresData.forEach((measureElems, index) => {
+                    const stave = new VF.Stave(startX, 15, measureWidth);
+                    
+                    if (index === 0) {
+                        stave.addClef(clef);
+                    }
+                    if (index === totalMeasures - 1) {
+                        stave.setEndBarType(VF.Barline.type.END);
+                    }
+
+                    stave.setContext(context).draw();
+
+                    const staveNotes = measureElems.map((item) => {
+                        return new VF.StaveNote({
+                            clef: clef,
+                            keys: [item.key],
+                            duration: item.duration
+                        });
+                    });
+
+                    const beams = VF.Beam.generateBeams(staveNotes);
+
+                    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+                    voice.addTickables(staveNotes);
+
+                    new VF.Formatter().joinVoices([voice]).format([voice], measureWidth - 45);
+                    voice.draw(context, stave);
+
+                    beams.forEach(beam => {
+                        beam.setContext(context).draw();
+                    });
+
+                    startX += measureWidth;
+                });
+
+            } catch (e) {
+                console.error("VexFlow 渲染失败:", e);
+            }
+        }
+
+        function updateProgressText() {
+            const totalPlayable = playableNotes.length;
+            if (totalPlayable === 0) {
+                document.getElementById('progress-text').innerText = `本行全为休止符，点击乐谱可直接重新生成！`;
+            } else {
+                document.getElementById('progress-text').innerText = `请依次输入乐谱中的音符 (当前第 ${currentIndex + 1} / ${totalPlayable} 个音，休止符已自动忽略)`;
+            }
+        }
+
+        function checkAnswer(selectedNote) {
+            if (playableNotes.length === 0) {
+                nextLine();
+                return;
+            }
+
+            initAudio();
+            const feedback = document.getElementById('feedback');
+            const targetNote = playableNotes[currentIndex];
+
+            let duration = 0.4;
+            if (targetNote.duration === 'w') duration = 1.2;
+            else if (targetNote.duration === 'h') duration = 0.8;
+            else if (targetNote.duration === '8') duration = 0.2;
+            else if (targetNote.duration === '16') duration = 0.1;
+
+            if (noteFrequencies[selectedNote]) {
+                playTone(noteFrequencies[selectedNote], duration);
+            }
+
+            if (selectedNote === targetNote.name) {
+                currentIndex++;
+                if (currentIndex < playableNotes.length) {
+                    feedback.innerText = `正确！继续输入下一个音...`;
+                    feedback.className = 'correct';
+                    updateProgressText();
+                } else {
+                    total++;
+                    correct++;
+                    streak++;
+                    feedback.innerText = '太棒了！本行练习全部正确！ 🎉';
+                    feedback.className = 'correct';
+                    updateStats();
+                    setTimeout(nextLine, 1400);
+                }
+            } else {
+                total++;
+                streak = 0;
+                feedback.innerText = `答错了。当前应该是 ${targetNote.name}，请重新开始这行练习。`;
+                feedback.className = 'wrong';
+                currentIndex = 0;
+                updateProgressText();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('total-count').innerText = total;
+            document.getElementById('accuracy').innerText = total === 0 ? '0%' : Math.round((correct / total) * 100) + '%';
+            document.getElementById('streak').innerText = streak;
+        }
+
+        document.getElementById('clef-select').addEventListener('change', nextLine);
+        document.getElementById('range-select').addEventListener('change', nextLine);
+        document.querySelectorAll('input[name="element"]').forEach(cb => {
+            cb.addEventListener('change', nextLine);
+        });
+
+        document.querySelectorAll('.btn-note').forEach(button => {
+            button.addEventListener('click', function() {
+                checkAnswer(this.getAttribute('data-note'));
+            });
+        });
+
+        document.getElementById('staff-container').addEventListener('click', function() {
+            initAudio();
+            playAllMeasures();
+        });
+
+        nextLine();
+    });
+</script>
+
+</body>
+</html>
