@@ -403,7 +403,7 @@
             '16': { beats: 0.25 }
         };
 
-        function generateSingleMeasure(pool) {
+        function generateSingleMeasure(pool, clef) {
             const checkedBoxes = document.querySelectorAll('input[name="element"]:checked');
             let selectedOptions = Array.from(checkedBoxes).map(cb => cb.value);
 
@@ -439,7 +439,7 @@
                 } else {
                     measureElements.push({
                         isRest: true,
-                        key: 'b/4', 
+                        key: clef === 'bass' ? 'd/3' : 'b/4', 
                         duration: durKey + 'r' 
                     });
                 }
@@ -467,7 +467,7 @@
             let measuresData = [];
 
             for (let m = 0; m < totalMeasures; m++) {
-                let measureElems = generateSingleMeasure(pool);
+                let measureElems = generateSingleMeasure(pool, clef);
                 measuresData.push(measureElems);
                 
                 measureElems.forEach(el => {
