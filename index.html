@@ -495,7 +495,7 @@
                         measuresData.some(measure => measure.some(item => item.duration === '16')) ? 440 : 340)
                     : 900;
                 const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-                renderer.resize(scoreWidth, mobile ? totalMeasures * 150 : 150);
+                renderer.resize(scoreWidth, mobile ? totalMeasures * 130 : 150);
                 const context = renderer.getContext();
 
                 let startX = 15;
@@ -503,7 +503,7 @@
 
                 measuresData.forEach((measureElems, index) => {
                     const stave = new VF.Stave(mobile ? 15 : startX,
-                        mobile ? 15 + index * 150 : 15, measureWidth);
+                        mobile ? 15 + index * 130 : 15, measureWidth);
                     
                     if (mobile || index === 0) {
                         stave.addClef(clef);
