@@ -269,3 +269,36 @@
 
             const now = audioCtx.currentTime;
             gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function playAllMeasures() {
+            let delay = 0;
+            allElements.forEach((el) => {
+                let interval = 400;
+                if (el.duration === 'w') interval = 1200;
+                else if (el.duration === 'h') interval = 800;
+                else if (el.duration === 'q') interval = 400;
+                else if (el.duration === '8') interval = 200;
+                else if (el.duration === '16') interval = 100;
+
+                if (!el.isRest) {
+                    let duration = interval * 0.9;
+                    setTimeout(() => {
+                        playTone(el.freq, duration / 1000);
+                    }, delay);
+                }
+                delay += interval;
+            });
+        }
+
+        const noteFrequencies = {
+            'C': 261.63, 'D': 293.66, 'E': 329.63,
+            '
