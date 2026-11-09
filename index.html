@@ -489,7 +489,6 @@
                 const VF = Vex.Flow;
                 const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
                 
-                // 恢复统一的标准画布大小，由 CSS 负责在手机上完美适配显示
                 renderer.resize(900, 150);
                 const context = renderer.getContext();
 
@@ -559,7 +558,7 @@
             let duration = 0.4;
             if (targetNote.duration === 'w') duration = 1.2;
             else if (targetNote.duration === 'h') duration = 0.8;
-            else if (targetNote.length === '8') duration = 0.2;
+            else if (targetNote.duration === '8') duration = 0.2;
             else if (targetNote.duration === '16') duration = 0.1;
 
             if (noteFrequencies[selectedNote]) {
@@ -604,7 +603,6 @@
             cb.addEventListener('change', nextLine);
         });
 
-        document.querySelectorAll('.btn-note').buttons = document.querySelectorAll('.btn-note');
         document.querySelectorAll('.btn-note').forEach(button => {
             button.addEventListener('click', function() {
                 checkAnswer(this.getAttribute('data-note'));
