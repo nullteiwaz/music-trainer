@@ -20,15 +20,16 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-        }
-        /* 针对手机竖屏（屏幕宽度小于 768px）进行排版优化：强制每行显示 1 小节 */
-@media screen and (max-width: 768px) {
-    /* 请检查你代码里画小节或五线谱的外层容器类名（比如叫 .measure、.stave-container 等），
-       将宽度设为 100% 并让其块级独占一行 */
-    .measure, .stave-container {
+}
+/* 针对手机端竖屏（屏幕宽度 <= 768px）：强制乐谱容器和每一行都占满全宽、单列显示 */
+@media screen and (max-width: 1024px) {
+    /* 让包裹乐谱的小节、SVG画布或行容器在手机上自动换行并撑满 */
+    .measure, .stave-container, svg {
         width: 100% !important;
+        max-width: 100% !important;
         display: block !important;
-        clear: both !important;
+        margin: 10px auto !important;
+        float: none !important;
     }
 }
         .container {
