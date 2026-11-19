@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五线谱随机读谱练习器 (修复加线版)</title>
+    <title>五线谱随机读谱练习器</title>
     <!-- 引入专业乐谱渲染库 VexFlow -->
     <script src="https://cdn.jsdelivr.net/npm/vexflow@1.2.93/releases/vexflow-min.js"></script>
     <style>
@@ -97,18 +97,33 @@
         }
         #staff-container {
             width: 100%;
-            height: 170px;
             background: #fff;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            cursor: pointer;
+        }
+        #vexflow-canvas svg { display: block; margin: 0 auto; }
+        .score-controls, .accidentals {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            margin-bottom: 15px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            transition: border-color 0.2s;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .practice-current .vf-notehead path {
+            fill: #1d4ed8;
+            stroke: #1d4ed8;
+            filter: drop-shadow(0 0 2px #93c5fd);
+        }
+        .accidentals[hidden] { display: none; }
+        .score-controls button, .accidentals button { padding: 6px 12px; }
+        .accidentals button[aria-pressed="true"] {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
         }
         #staff-container:hover {
             border-color: #94a3b8;
@@ -155,7 +170,7 @@
         }
         #feedback {
             font-size: 16px;
-            height: 24px;
+            min-height: 24px;
             font-weight: bold;
         }
         .correct { color: #16a34a; }
@@ -170,12 +185,6 @@
             .checkbox-group { gap: 8px 10px; }
             .checkbox-group label { font-size: 12px; }
             .settings-panel select { max-width: 100%; }
-            #staff-container {
-                height: 264px;
-                justify-content: flex-start;
-                overflow: hidden;
-            }
-            #vexflow-canvas { flex: none; width: 100%; }
             .progress-indicator, .tip, .buttons { margin-bottom: 10px; }
             .buttons { gap: 5px; }
             .btn-note { padding: 10px 0; }
@@ -185,12 +194,12 @@
 <body>
 
 <div class="container">
-    <h1>五线谱读谱闪卡练习 (修复加线版)</h1>
+    <h1>五线谱读谱练习</h1>
     
     <div class="stats">
-        <span>总题数: <b id="total-count">0</b></span>
+        <span>小节作答次数: <b id="total-count">0</b></span>
         <span>正确率: <b id="accuracy">0%</b></span>
-        <span>当前连击: <b id="streak">0</b></span>
+        <span>连续答对小节: <b id="streak">0</b></span>
     </div>
 
     <!-- 控制设置面板 -->
@@ -208,9 +217,25 @@
                 <select id="range-select">
                     <option value="standard">标准音域 (五线谱内)</option>
                     <option value="ledger" selected>包含加线 (含上下加线)</option>
-                    <option value="all">扩展全音域 (宽广音区)</option>
+                    <option value="all">扩展全音域（上下各多两个音）</option>
                 </select>
             </div>
+        </div>
+        <div class="settings-row">
+            <div class="settings-group">
+                <label for="key-select">调号：</label>
+                <select id="key-select"></select>
+            </div>
+            <div class="settings-group">
+                <label for="chord-select">和弦练习：</label>
+                <select id="chord-select">
+                    <option value="off">关闭</option>
+                    <option value="2">穿插两个音（三度、五度）</option>
+                    <option value="3">穿插三和弦（含转位）</option>
+                    <option value="mixed">两个音和三和弦混合</option>
+                </select>
+            </div>
+            <label><input type="checkbox" id="chromatic"> 加入临时升降号</label>
         </div>
         <div class="settings-row">
             <span style="font-weight: 500; color: #475569;">选择允许出现的音符与休止符：</span>
@@ -233,10 +258,18 @@
         <div id="vexflow-canvas"></div>
     </div>
     
-    <div class="progress-indicator" id="progress-text">请依次输入乐谱中的音符</div>
-    <div class="tip">💡 提示：加线模式现已正确包含上加线与下加线音符</div>
-
-    <!-- 答题按钮 -->
+    <div class="score-controls">
+        <button type="button" class="btn-note" id="replay">重听整行</button>
+        <button type="button" class="btn-note" id="new-line">换一行</button>
+        <label><input type="checkbox" id="follow-score" checked> 跟谱光标</label>
+    </div>
+    <div class="progress-indicator" id="progress-text" role="status"></div>
+    <div class="tip">和弦从低到高输入。遇到升音或降音，先选 ♯ 或 ♭，再按音名。</div>
+    <div class="accidentals" id="accidentals" role="group" aria-label="下一个答案的升降号" hidden>
+        <button type="button" class="btn-note" data-alter="-1" aria-label="降半音" aria-pressed="false">♭</button>
+        <button type="button" class="btn-note" data-alter="0" aria-label="自然音" aria-pressed="true">♮</button>
+        <button type="button" class="btn-note" data-alter="1" aria-label="升半音" aria-pressed="false">♯</button>
+    </div>
     <div class="buttons">
         <button class="btn-note" data-note="C">C</button>
         <button class="btn-note" data-note="D">D</button>
@@ -247,7 +280,7 @@
         <button class="btn-note" data-note="B">B</button>
     </div>
 
-    <div id="feedback"></div>
+    <div id="feedback" role="status"></div>
 </div>
 
 <script>
@@ -256,158 +289,176 @@
         let correct = 0;
         let streak = 0;
 
-        let playableNotes = []; 
-        let allElements = [];   
-        let currentIndex = 0;  
         let currentScore = null;
-        const mobileLayout = () => window.matchMedia('(max-width: 600px), (max-height: 600px) and (pointer: coarse)').matches;
-
+        let measureIndex = 0;
+        let questionIndex = 0;
+        let pitchIndex = 0;
+        let answerAlter = 0;
+        let nextLineTimer;
+        let replayTimers = [];
         let audioCtx = null;
+        const mobileLayout = () => window.matchMedia('(max-width: 600px), (max-height: 600px) and (pointer: coarse)').matches;
+        const byId = id => document.getElementById(id);
+        const pick = items => items[Math.floor(Math.random() * items.length)];
+        const feedback = byId('feedback');
+        const keySelect = byId('key-select');
+        const followScore = byId('follow-score');
+        const questionMarks = new Map();
+        let activeMark = null;
+        const alterButtons = Array.from(document.querySelectorAll('[data-alter]'));
+        const majorKeys = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
+        const accidentalSigns = { '-1': '♭', 0: '', 1: '♯' };
+        const naturalSemitones = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+        for (const key of majorKeys) {
+            const label = key.replace('b', '♭').replace('#', '♯') + ' 大调';
+            keySelect.add(new Option(label, key, key === 'C', key === 'C'));
+        }
+
+        function getKeyAlterations(key) {
+            const count = majorKeys.indexOf(key) - majorKeys.indexOf('C');
+            const order = count < 0 ? 'BEADGCF' : 'FCGDAEB';
+            return new Map(Array.from(order.slice(0, Math.abs(count)), name => [name, Math.sign(count)]));
+        }
+
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            const Audio = window.AudioContext || window.webkitAudioContext;
+            if (!audioCtx && Audio) audioCtx = new Audio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(console.warn);
+            return audioCtx;
         }
 
-        function playTone(freq, duration = 0.4) {
-            initAudio();
-            if (!audioCtx) return;
-
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-            const now = audioCtx.currentTime;
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            osc.start(now);
-            osc.stop(now + duration);
-        }
-
-        function playAllMeasures() {
-            let delay = 0;
-            allElements.forEach((el) => {
-                let interval = 400;
-                if (el.duration === 'w') interval = 1200;
-                else if (el.duration === 'h') interval = 800;
-                else if (el.duration === 'q') interval = 400;
-                else if (el.duration === '8') interval = 200;
-                else if (el.duration === '16') interval = 100;
-
-                if (!el.isRest) {
-                    let duration = interval * 0.9;
-                    setTimeout(() => {
-                        playTone(el.freq, duration / 1000);
-                    }, delay);
-                }
-                delay += interval;
+        function playPitches(pitches, seconds) {
+            const audio = initAudio();
+            if (!audio) return;
+            const start = audio.currentTime;
+            const gain = audio.createGain();
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.3 / pitches.length, start + 0.025);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + seconds);
+            gain.connect(audio.destination);
+            pitches.forEach((pitch, index) => {
+                const oscillator = audio.createOscillator();
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(440 * 2 ** ((pitch.midi - 69) / 12), start);
+                oscillator.connect(gain);
+                oscillator.start(start);
+                oscillator.stop(start + seconds);
+                if (index === 0) oscillator.onended = () => gain.disconnect();
             });
         }
 
-        const noteFrequencies = {
-            'C': 261.63, 'D': 293.66, 'E': 329.63,
-            'F': 349.23, 'G': 392.00, 'A': 440.00, 'B': 493.88
-        };
+        function stopReplay() {
+            replayTimers.forEach(timer => clearTimeout(timer));
+            replayTimers = [];
+        }
+
+        function playAllMeasures() {
+            if (!currentScore || !initAudio()) return;
+            stopReplay();
+            let delay = 0;
+            for (const item of currentScore.measures.flat()) {
+                const milliseconds = item.beats * 400;
+                if (!item.isRest) {
+                    replayTimers.push(setTimeout(() => playPitches(item.pitches, milliseconds * 0.0009), delay));
+                }
+                delay += milliseconds;
+            }
+        }
 
         const notePools = {
             treble: {
                 standard: [ // 五线谱内 (E4 ~ F5)
-                    { key: 'e/4', name: 'E', freq: 329.63 },
-                    { key: 'f/4', name: 'F', freq: 349.23 },
-                    { key: 'g/4', name: 'G', freq: 392.00 },
-                    { key: 'a/4', name: 'A', freq: 440.00 },
-                    { key: 'b/4', name: 'B', freq: 493.88 },
-                    { key: 'c/5', name: 'C', freq: 523.25 },
-                    { key: 'd/5', name: 'D', freq: 587.33 },
-                    { key: 'e/5', name: 'E', freq: 659.25 },
-                    { key: 'f/5', name: 'F', freq: 698.46 }
+                    { key: 'e/4', name: 'E' },
+                    { key: 'f/4', name: 'F' },
+                    { key: 'g/4', name: 'G' },
+                    { key: 'a/4', name: 'A' },
+                    { key: 'b/4', name: 'B' },
+                    { key: 'c/5', name: 'C' },
+                    { key: 'd/5', name: 'D' },
+                    { key: 'e/5', name: 'E' },
+                    { key: 'f/5', name: 'F' }
                 ],
                 ledger: [ // 包含加线：下加一线(C4) + 五线谱内 + 上加一线(A5)
-                    { key: 'c/4', name: 'C', freq: 261.63 },
-                    { key: 'd/4', name: 'D', freq: 293.66 },
-                    { key: 'e/4', name: 'E', freq: 329.63 },
-                    { key: 'f/4', name: 'F', freq: 349.23 },
-                    { key: 'g/4', name: 'G', freq: 392.00 },
-                    { key: 'a/4', name: 'A', freq: 440.00 },
-                    { key: 'b/4', name: 'B', freq: 493.88 },
-                    { key: 'c/5', name: 'C', freq: 523.25 },
-                    { key: 'd/5', name: 'D', freq: 587.33 },
-                    { key: 'e/5', name: 'E', freq: 659.25 },
-                    { key: 'f/5', name: 'F', freq: 698.46 },
-                    { key: 'g/5', name: 'G', freq: 783.99 },
-                    { key: 'a/5', name: 'A', freq: 880.00 }  // 上加一线
+                    { key: 'c/4', name: 'C' },
+                    { key: 'd/4', name: 'D' },
+                    { key: 'e/4', name: 'E' },
+                    { key: 'f/4', name: 'F' },
+                    { key: 'g/4', name: 'G' },
+                    { key: 'a/4', name: 'A' },
+                    { key: 'b/4', name: 'B' },
+                    { key: 'c/5', name: 'C' },
+                    { key: 'd/5', name: 'D' },
+                    { key: 'e/5', name: 'E' },
+                    { key: 'f/5', name: 'F' },
+                    { key: 'g/5', name: 'G' },
+                    { key: 'a/5', name: 'A' }  // 上加一线
                 ],
-                all: [ // 扩展全音域
-                    { key: 'a/3', name: 'A', freq: 220.00 },
-                    { key: 'b/3', name: 'B', freq: 246.94 },
-                    { key: 'c/4', name: 'C', freq: 261.63 },
-                    { key: 'd/4', name: 'D', freq: 293.66 },
-                    { key: 'e/4', name: 'E', freq: 329.63 },
-                    { key: 'f/4', name: 'F', freq: 349.23 },
-                    { key: 'g/4', name: 'G', freq: 392.00 },
-                    { key: 'a/4', name: 'A', freq: 440.00 },
-                    { key: 'b/4', name: 'B', freq: 493.88 },
-                    { key: 'c/5', name: 'C', freq: 523.25 },
-                    { key: 'd/5', name: 'D', freq: 587.33 },
-                    { key: 'e/5', name: 'E', freq: 659.25 },
-                    { key: 'f/5', name: 'F', freq: 698.46 },
-                    { key: 'g/5', name: 'G', freq: 783.99 },
-                    { key: 'a/5', name: 'A', freq: 880.00 }
+                all: [ // 扩展全音域 (A3 ~ C6)
+                    { key: 'a/3', name: 'A' },
+                    { key: 'b/3', name: 'B' },
+                    { key: 'c/4', name: 'C' },
+                    { key: 'd/4', name: 'D' },
+                    { key: 'e/4', name: 'E' },
+                    { key: 'f/4', name: 'F' },
+                    { key: 'g/4', name: 'G' },
+                    { key: 'a/4', name: 'A' },
+                    { key: 'b/4', name: 'B' },
+                    { key: 'c/5', name: 'C' },
+                    { key: 'd/5', name: 'D' },
+                    { key: 'e/5', name: 'E' },
+                    { key: 'f/5', name: 'F' },
+                    { key: 'g/5', name: 'G' },
+                    { key: 'a/5', name: 'A' },
+                    { key: 'b/5', name: 'B' },
+                    { key: 'c/6', name: 'C' }
                 ]
             },
             bass: {
                 standard: [ // 五线谱内 (G2 ~ A3)
-                    { key: 'g/2', name: 'G', freq: 98.00 },
-                    { key: 'a/2', name: 'A', freq: 110.00 },
-                    { key: 'b/2', name: 'B', freq: 123.47 },
-                    { key: 'c/3', name: 'C', freq: 130.81 },
-                    { key: 'd/3', name: 'D', freq: 146.83 },
-                    { key: 'e/3', name: 'E', freq: 164.81 },
-                    { key: 'f/3', name: 'F', freq: 174.61 },
-                    { key: 'g/3', name: 'G', freq: 196.00 },
-                    { key: 'a/3', name: 'A', freq: 220.00 }
+                    { key: 'g/2', name: 'G' },
+                    { key: 'a/2', name: 'A' },
+                    { key: 'b/2', name: 'B' },
+                    { key: 'c/3', name: 'C' },
+                    { key: 'd/3', name: 'D' },
+                    { key: 'e/3', name: 'E' },
+                    { key: 'f/3', name: 'F' },
+                    { key: 'g/3', name: 'G' },
+                    { key: 'a/3', name: 'A' }
                 ],
                 ledger: [ // 上下各一条加线 (E2 ~ C4)
-                    { key: 'e/2', name: 'E', freq: 82.41 },
-                    { key: 'f/2', name: 'F', freq: 87.31 },
-                    { key: 'g/2', name: 'G', freq: 98.00 },
-                    { key: 'a/2', name: 'A', freq: 110.00 },
-                    { key: 'b/2', name: 'B', freq: 123.47 },
-                    { key: 'c/3', name: 'C', freq: 130.81 },
-                    { key: 'd/3', name: 'D', freq: 146.83 },
-                    { key: 'e/3', name: 'E', freq: 164.81 },
-                    { key: 'f/3', name: 'F', freq: 174.61 },
-                    { key: 'g/3', name: 'G', freq: 196.00 },
-                    { key: 'a/3', name: 'A', freq: 220.00 },
-                    { key: 'b/3', name: 'B', freq: 246.94 },
-                    { key: 'c/4', name: 'C', freq: 261.63 }
+                    { key: 'e/2', name: 'E' },
+                    { key: 'f/2', name: 'F' },
+                    { key: 'g/2', name: 'G' },
+                    { key: 'a/2', name: 'A' },
+                    { key: 'b/2', name: 'B' },
+                    { key: 'c/3', name: 'C' },
+                    { key: 'd/3', name: 'D' },
+                    { key: 'e/3', name: 'E' },
+                    { key: 'f/3', name: 'F' },
+                    { key: 'g/3', name: 'G' },
+                    { key: 'a/3', name: 'A' },
+                    { key: 'b/3', name: 'B' },
+                    { key: 'c/4', name: 'C' }
                 ],
-                all: [ // 扩展全音域 (C2 ~ C4)
-                    { key: 'c/2', name: 'C', freq: 65.41 },
-                    { key: 'd/2', name: 'D', freq: 73.42 },
-                    { key: 'e/2', name: 'E', freq: 82.41 },
-                    { key: 'f/2', name: 'F', freq: 87.31 },
-                    { key: 'g/2', name: 'G', freq: 98.00 },
-                    { key: 'a/2', name: 'A', freq: 110.00 },
-                    { key: 'b/2', name: 'B', freq: 123.47 },
-                    { key: 'c/3', name: 'C', freq: 130.81 },
-                    { key: 'd/3', name: 'D', freq: 146.83 },
-                    { key: 'e/3', name: 'E', freq: 164.81 },
-                    { key: 'f/3', name: 'F', freq: 174.61 },
-                    { key: 'g/3', name: 'G', freq: 196.00 },
-                    { key: 'a/3', name: 'A', freq: 220.00 },
-                    { key: 'b/3', name: 'B', freq: 246.94 },
-                    { key: 'c/4', name: 'C', freq: 261.63 }
+                all: [ // 扩展全音域 (C2 ~ E4)
+                    { key: 'c/2', name: 'C' },
+                    { key: 'd/2', name: 'D' },
+                    { key: 'e/2', name: 'E' },
+                    { key: 'f/2', name: 'F' },
+                    { key: 'g/2', name: 'G' },
+                    { key: 'a/2', name: 'A' },
+                    { key: 'b/2', name: 'B' },
+                    { key: 'c/3', name: 'C' },
+                    { key: 'd/3', name: 'D' },
+                    { key: 'e/3', name: 'E' },
+                    { key: 'f/3', name: 'F' },
+                    { key: 'g/3', name: 'G' },
+                    { key: 'a/3', name: 'A' },
+                    { key: 'b/3', name: 'B' },
+                    { key: 'c/4', name: 'C' },
+                    { key: 'd/4', name: 'D' },
+                    { key: 'e/4', name: 'E' }
                 ]
             }
         };
@@ -420,205 +471,262 @@
             '16': { beats: 0.25 }
         };
 
-        function generateSingleMeasure(pool, clef) {
-            const checkedBoxes = document.querySelectorAll('input[name="element"]:checked');
-            let selectedOptions = Array.from(checkedBoxes).map(cb => cb.value);
+        const chordShapes = {
+            2: [
+                { steps: [0, 2], intervals: [0, 3] },
+                { steps: [0, 2], intervals: [0, 4] },
+                { steps: [0, 4], intervals: [0, 7] }
+            ],
+            3: [
+                ...[[0, 4, 7], [0, 3, 7], [0, 3, 6]].map(intervals => ({ steps: [0, 2, 4], intervals })),
+                ...[[0, 3, 8], [0, 4, 9], [0, 3, 9]].map(intervals => ({ steps: [0, 2, 5], intervals })),
+                ...[[0, 5, 9], [0, 5, 8], [0, 6, 9]].map(intervals => ({ steps: [0, 3, 5], intervals }))
+            ]
+        };
 
-            if (selectedOptions.length === 0) {
-                selectedOptions = ['note-q']; 
-            }
-
-            let measureElements = [];
-            let totalBeats = 0;
-
-            while (totalBeats < 4) {
-                let validOptions = selectedOptions.filter(opt => {
-                    let durKey = opt.split('-')[1];
-                    return totalBeats + durationConfig[durKey].beats <= 4;
+        function buildQuestionPools(pool, keyAlterations, chromatic, sizes) {
+            const naturalPitches = pool.map(({ key, name }) => ({
+                key, name, midi: (Number(key.split('/')[1]) + 1) * 12 + naturalSemitones[name]
+            }));
+            const inKey = pitch => keyAlterations.get(pitch.name) ?? 0;
+            const withAlter = (pitch, alter) => ({ ...pitch, midi: pitch.midi + alter, alter });
+            const alterations = pitch => chromatic ? [-1, 0, 1] : [inKey(pitch)];
+            const groupByKey = questions => ({
+                inKey: questions.filter(pitches => pitches.every(pitch => pitch.alter === inKey(pitch))),
+                altered: questions.filter(pitches => pitches.some(pitch => pitch.alter !== inKey(pitch)))
+            });
+            const singles = naturalPitches.flatMap(pitch => alterations(pitch).map(alter => [withAlter(pitch, alter)]));
+            const pools = { 1: groupByKey(singles) };
+            for (const size of sizes) {
+                const chords = [];
+                naturalPitches.forEach((bottom, index) => {
+                    for (const shape of chordShapes[size]) {
+                        if (index + shape.steps[size - 1] >= naturalPitches.length) continue;
+                        for (const bottomAlter of alterations(bottom)) {
+                            const pitches = shape.steps.map((step, voice) => {
+                                const pitch = naturalPitches[index + step];
+                                const alter = bottom.midi + bottomAlter + shape.intervals[voice] - pitch.midi;
+                                return withAlter(pitch, alter);
+                            });
+                            if (pitches.every(pitch => Math.abs(pitch.alter) <= 1 && (chromatic || pitch.alter === inKey(pitch)))) {
+                                chords.push(pitches);
+                            }
+                        }
+                    }
                 });
-
-                if (validOptions.length === 0) {
-                    validOptions = [selectedOptions[0]];
-                }
-
-                let chosenOpt = validOptions[Math.floor(Math.random() * validOptions.length)];
-                let [type, durKey] = chosenOpt.split('-');
-
-                if (type === 'note') {
-                    const item = pool[Math.floor(Math.random() * pool.length)];
-                    measureElements.push({
-                        isRest: false,
-                        key: item.key,
-                        name: item.name,
-                        freq: item.freq,
-                        duration: durKey
-                    });
-                } else {
-                    measureElements.push({
-                        isRest: true,
-                        key: clef === 'bass' ? 'd/3' : 'b/4', 
-                        duration: durKey + 'r' 
-                    });
-                }
-                totalBeats += durationConfig[durKey].beats;
+                pools[size] = groupByKey(chords);
             }
-            return measureElements;
+            return pools;
+        }
+
+        function generateSingleMeasure(pools, selectedOptions, keyAlterations, clef) {
+            const elements = [];
+            const accidentalState = new Map();
+            const chordSizes = [2, 3].filter(size => pools[size]?.inKey.length || pools[size]?.altered.length);
+            let remaining = 4;
+            while (remaining > 0) {
+                const valid = selectedOptions.filter(option => option.beats <= remaining);
+                // Fill any remainder that the selected durations cannot cover.
+                const option = valid.length ? pick(valid) : { isRest: true, duration: remaining >= 1 ? 'q' : remaining >= 0.5 ? '8' : '16' };
+                const beats = durationConfig[option.duration].beats;
+                if (option.isRest) {
+                    elements.push({ isRest: true, duration: option.duration + 'r', beats, restKey: clef === 'bass' ? 'd/3' : 'b/4' });
+                } else {
+                    const size = chordSizes.length && Math.random() < 1 / 3 ? pick(chordSizes) : 1;
+                    const { inKey, altered } = pools[size];
+                    const pitches = pick(altered.length && (!inKey.length || Math.random() < 0.25) ? altered : inKey);
+                    const signs = pitches.map(pitch => {
+                        const prior = accidentalState.get(pitch.key) ?? keyAlterations.get(pitch.name) ?? 0;
+                        accidentalState.set(pitch.key, pitch.alter);
+                        return prior === pitch.alter ? null : ({ '-1': 'b', 0: 'n', 1: '#' })[pitch.alter];
+                    });
+                    elements.push({ isRest: false, duration: option.duration, beats, pitches, signs });
+                }
+                remaining -= beats;
+            }
+            return elements;
+        }
+
+        function setAnswerAlter(alter) {
+            answerAlter = alter;
+            alterButtons.forEach(button => button.setAttribute('aria-pressed', Number(button.dataset.alter) === alter));
         }
 
         function nextLine() {
-            document.getElementById('feedback').innerText = '';
-            currentIndex = 0;
-            const clef = document.getElementById('clef-select').value;
-            const range = document.getElementById('range-select').value;
-            
-            const pool = notePools[clef][range];
+            clearTimeout(nextLineTimer);
+            stopReplay();
+            feedback.textContent = '';
+            measureIndex = 0;
+            questionIndex = 0;
+            pitchIndex = 0;
+            setAnswerAlter(0);
 
-            const hasSixteenth = Array.from(document.querySelectorAll('input[name="element"]:checked'))
-                .some(cb => cb.value.includes('16'));
+            const clef = byId('clef-select').value;
+            const range = byId('range-select').value;
+            const key = keySelect.value;
+            const keyAlterations = getKeyAlterations(key);
+            const chromatic = byId('chromatic').checked;
+            const chordMode = byId('chord-select').value;
+            const sizes = chordMode === 'off' ? [] : chordMode === 'mixed' ? [2, 3] : [Number(chordMode)];
+            byId('accidentals').hidden = key === 'C' && !chromatic;
+            const pools = buildQuestionPools(notePools[clef][range], keyAlterations, chromatic, sizes);
 
-            const mobile = mobileLayout();
-            const totalMeasures = mobile || hasSixteenth ? 2 : 4;
-
-            allElements = [];
-            playableNotes = [];
-            let measuresData = [];
-
-            for (let m = 0; m < totalMeasures; m++) {
-                let measureElems = generateSingleMeasure(pool, clef);
-                measuresData.push(measureElems);
-                
-                measureElems.forEach(el => {
-                    allElements.push(el);
-                    if (!el.isRest) {
-                        playableNotes.push(el); 
-                    }
-                });
-            }
-
+            const checked = Array.from(document.querySelectorAll('input[name="element"]:checked'), box => box.value);
+            const selectedOptions = (checked.length ? checked : ['note-q']).map(value => {
+                const [type, duration] = value.split('-');
+                return { isRest: type === 'rest', duration, beats: durationConfig[duration].beats };
+            });
+            const totalMeasures = mobileLayout() || selectedOptions.some(option => option.duration === '16') ? 2 : 4;
+            const measures = Array.from({ length: totalMeasures }, () => generateSingleMeasure(pools, selectedOptions, keyAlterations, clef));
+            const questions = measures.map(measure => measure.filter(item => !item.isRest));
+            currentScore = { clef, key, measures, questions, hasQuestions: questions.some(items => items.length) };
+            skipEmptyMeasures();
             updateProgressText();
-            currentScore = { clef, measuresData, totalMeasures, mobile };
-            renderStaff(clef, measuresData, totalMeasures);
+            renderStaff();
         }
 
-        function renderStaff(clef, measuresData, totalMeasures) {
-            const container = document.getElementById('vexflow-canvas');
-            container.innerHTML = '';
-
-            try {
-                const VF = Vex.Flow;
-                const mobile = mobileLayout();
-                const scoreWidth = mobile
-                    ? Math.max(document.getElementById('staff-container').clientWidth - 4,
-                        measuresData.some(measure => measure.some(item => item.duration === '16')) ? 440 : 340)
-                    : 900;
-                const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-                renderer.resize(scoreWidth, mobile ? totalMeasures * 130 : 150);
-                const context = renderer.getContext();
-
-                let startX = 15;
-                const measureWidth = mobile ? scoreWidth - 30 : 865 / totalMeasures;
-
-                measuresData.forEach((measureElems, index) => {
-                    const stave = new VF.Stave(mobile ? 15 : startX,
-                        mobile ? 15 + index * 130 : 15, measureWidth);
-                    
-                    if (mobile || index === 0) {
-                        stave.addClef(clef);
-                    }
-                    if (index === totalMeasures - 1) {
-                        stave.setEndBarType(VF.Barline.type.END);
-                    }
-
-                    stave.setContext(context).draw();
-
-                    const staveNotes = measureElems.map((item) => {
-                        return new VF.StaveNote({
-                            clef: clef,
-                            keys: [item.key],
-                            duration: item.duration
-                        });
-                    });
-
-                    const beams = VF.Beam.generateBeams(staveNotes);
-
-                    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-                    voice.addTickables(staveNotes);
-
-                    new VF.Formatter().joinVoices([voice]).format([voice], measureWidth - 45);
-                    voice.draw(context, stave);
-
-                    beams.forEach(beam => {
-                        beam.setContext(context).draw();
-                    });
-
-                    startX += measureWidth;
-                });
-
-                if (mobile) {
-                    const svg = container.querySelector('svg');
-                    svg.setAttribute('viewBox', `0 0 ${scoreWidth} ${totalMeasures * 130}`);
-                    svg.style.width = '100%';
-                    svg.style.height = 'auto';
-                }
-
-            } catch (e) {
-                console.error("VexFlow 渲染失败:", e);
+        function renderStaff() {
+            const container = byId('vexflow-canvas');
+            container.replaceChildren();
+            questionMarks.clear();
+            activeMark = null;
+            if (!window.Vex) {
+                container.textContent = '乐谱组件加载失败，请检查网络后刷新页面。';
+                return;
             }
+            const { clef, key, measures } = currentScore;
+            const VF = window.Vex.Flow;
+            const mobile = mobileLayout();
+            const layout = measures.map((measure, index) => {
+                const stave = new VF.Stave(15, mobile ? 15 + index * 125 : 15, 100);
+                if (mobile || index === 0) stave.addClef(clef).addKeySignature(key);
+                if (index === measures.length - 1) stave.setEndBarType(VF.Barline.type.END);
+                const notes = measure.map(item => {
+                    const note = new VF.StaveNote({
+                        clef,
+                        keys: item.isRest ? [item.restKey] : item.pitches.map(pitch => pitch.key),
+                        duration: item.duration,
+                        auto_stem: true
+                    });
+                    if (!item.isRest) item.signs.forEach((sign, voice) => {
+                        if (sign) note.addAccidental(voice, new VF.Accidental(sign));
+                    });
+                    return note;
+                });
+                const beams = VF.Beam.generateBeams(notes);
+                const voice = new VF.Voice({ num_beats: 4, beat_value: 4 }).addTickables(notes);
+                const formatter = new VF.Formatter().joinVoices([voice]);
+                const width = Math.ceil(formatter.preCalculateMinTotalWidth([voice])) + stave.getNoteStartX() - 15 + 28;
+                return { stave, voice, formatter, beams, width, measure, notes };
+            });
+            const available = byId('staff-container').clientWidth - 30;
+            const required = mobile ? Math.max(...layout.map(item => item.width)) : layout.reduce((sum, item) => sum + item.width, 0);
+            const scoreWidth = Math.max(available, required);
+            const extra = (scoreWidth - required) / layout.length;
+            const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+            renderer.resize(scoreWidth + 30, mobile ? measures.length * 125 + 15 : 150);
+            const context = renderer.getContext();
+            let x = 15;
+            for (const { stave, voice, formatter, beams, width, measure, notes } of layout) {
+                const measureWidth = mobile ? scoreWidth : width + extra;
+                stave.setX(mobile ? 15 : x).setWidth(measureWidth).setContext(context).draw();
+                formatter.format([voice], stave.getNoteEndX() - stave.getNoteStartX() - 16);
+                voice.draw(context, stave);
+                beams.forEach(beam => beam.setContext(context).draw());
+                notes.forEach((note, index) => {
+                    if (!measure[index].isRest) questionMarks.set(measure[index], note.getAttribute('el'));
+                });
+                x += measureWidth;
+            }
+            updateScoreCursor();
+        }
+
+        function updateScoreCursor() {
+            const question = currentScore.questions[measureIndex]?.[questionIndex];
+            const mark = followScore.checked ? questionMarks.get(question) ?? null : null;
+            if (mark === activeMark) return;
+            activeMark?.classList.remove('practice-current');
+            activeMark = mark;
+            if (!mark) return;
+
+            mark.classList.add('practice-current');
+            const staff = byId('staff-container');
+            const viewportLeft = staff.getBoundingClientRect().left + staff.clientLeft;
+            const viewportRight = viewportLeft + staff.clientWidth;
+            const bounds = mark.getBoundingClientRect();
+            if (bounds.right > viewportRight - 8) {
+                staff.scrollLeft += bounds.right - viewportRight + 8;
+            } else if (bounds.left < viewportLeft + 8) {
+                staff.scrollLeft += bounds.left - viewportLeft - 8;
+            }
+        }
+
+        function skipEmptyMeasures() {
+            const { questions } = currentScore;
+            while (measureIndex < questions.length && questions[measureIndex].length === 0) measureIndex++;
         }
 
         function updateProgressText() {
-            const totalPlayable = playableNotes.length;
-            if (totalPlayable === 0) {
-                document.getElementById('progress-text').innerText = `本行全为休止符，点击乐谱可直接重新生成！`;
+            const { questions, hasQuestions } = currentScore;
+            const progress = byId('progress-text');
+            const measure = questions[measureIndex];
+            if (!hasQuestions) {
+                progress.textContent = '本行都是休止符，可以点「换一行」。';
+            } else if (!measure) {
+                progress.textContent = '本行已完成';
             } else {
-                document.getElementById('progress-text').innerText = `请依次输入乐谱中的音符 (当前第 ${currentIndex + 1} / ${totalPlayable} 个音，休止符已自动忽略)`;
+                const count = measure[questionIndex].pitches.length;
+                const position = '第 ' + (measureIndex + 1) + ' / ' + questions.length + ' 小节 · 第 ' + (questionIndex + 1) + ' / ' + measure.length + ' 题';
+                progress.textContent = count > 1 ? position + ' · 已答 ' + pitchIndex + ' / ' + count + ' 音' : position;
             }
+            updateScoreCursor();
         }
 
-        function checkAnswer(selectedNote) {
-            if (playableNotes.length === 0) {
-                nextLine();
+        function checkAnswer(name) {
+            const measure = currentScore.questions[measureIndex];
+            if (!measure) return;
+            const question = measure[questionIndex];
+            const expected = question.pitches[pitchIndex];
+            const matches = name === expected.name && answerAlter === expected.alter;
+            setAnswerAlter(0);
+
+            if (!matches) {
+                total++;
+                streak = 0;
+                feedback.className = 'wrong';
+                feedback.textContent = '这里是 ' + expected.name + accidentalSigns[expected.alter] + '。从第 ' + (measureIndex + 1) + ' 小节开头重试。';
+                questionIndex = 0;
+                pitchIndex = 0;
+                updateStats();
+                updateProgressText();
                 return;
             }
 
-            initAudio();
-            const feedback = document.getElementById('feedback');
-            const targetNote = playableNotes[currentIndex];
-
-            let duration = 0.4;
-            if (targetNote.duration === 'w') duration = 1.2;
-            else if (targetNote.duration === 'h') duration = 0.8;
-            else if (targetNote.duration === '8') duration = 0.2;
-            else if (targetNote.duration === '16') duration = 0.1;
-
-            if (noteFrequencies[selectedNote]) {
-                playTone(noteFrequencies[selectedNote], duration);
-            }
-
-            if (selectedNote === targetNote.name) {
-                currentIndex++;
-                if (currentIndex < playableNotes.length) {
-                    feedback.innerText = `正确！继续输入下一个音...`;
-                    feedback.className = 'correct';
-                    updateProgressText();
-                } else {
+            pitchIndex++;
+            feedback.className = 'correct';
+            if (pitchIndex < question.pitches.length) {
+                feedback.textContent = '继续输入上方的音。';
+            } else {
+                stopReplay();
+                playPitches(question.pitches, question.beats * 0.36);
+                pitchIndex = 0;
+                questionIndex++;
+                feedback.textContent = '正确！';
+                if (questionIndex === measure.length) {
                     total++;
                     correct++;
                     streak++;
-                    feedback.innerText = '太棒了！本行练习全部正确！ 🎉';
-                    feedback.className = 'correct';
                     updateStats();
-                    setTimeout(nextLine, 1400);
+                    questionIndex = 0;
+                    measureIndex++;
+                    skipEmptyMeasures();
+                    if (measureIndex === currentScore.questions.length) {
+                        feedback.textContent = '本行全部答完！';
+                        nextLineTimer = setTimeout(nextLine, Math.max(1400, question.beats * 400));
+                    }
                 }
-            } else {
-                total++;
-                streak = 0;
-                feedback.innerText = `答错了。当前应该是 ${targetNote.name}，请重新开始这行练习。`;
-                feedback.className = 'wrong';
-                currentIndex = 0;
-                updateProgressText();
-                updateStats();
             }
+            updateProgressText();
         }
 
         function updateStats() {
@@ -627,32 +735,18 @@
             document.getElementById('streak').innerText = streak;
         }
 
-        document.getElementById('clef-select').addEventListener('change', nextLine);
-        document.getElementById('range-select').addEventListener('change', nextLine);
-        document.querySelectorAll('input[name="element"]').forEach(cb => {
-            cb.addEventListener('change', nextLine);
+        document.querySelectorAll('.settings-panel select, .settings-panel input').forEach(control => {
+            control.addEventListener('change', nextLine);
         });
-
-        document.querySelectorAll('.btn-note').forEach(button => {
-            button.addEventListener('click', function() {
-                checkAnswer(this.getAttribute('data-note'));
-            });
+        alterButtons.forEach(button => button.addEventListener('click', () => setAnswerAlter(Number(button.dataset.alter))));
+        document.querySelectorAll('[data-note]').forEach(button => {
+            button.addEventListener('click', () => checkAnswer(button.dataset.note));
         });
-
-        document.getElementById('staff-container').addEventListener('click', function() {
-            initAudio();
-            playAllMeasures();
-        });
-
-        window.addEventListener('resize', function() {
-            if (currentScore) {
-                if (mobileLayout() !== currentScore.mobile) {
-                    nextLine();
-                } else {
-                    renderStaff(currentScore.clef, currentScore.measuresData, currentScore.totalMeasures);
-                }
-            }
-        });
+        byId('staff-container').addEventListener('click', playAllMeasures);
+        byId('replay').addEventListener('click', playAllMeasures);
+        followScore.addEventListener('change', updateScoreCursor);
+        byId('new-line').addEventListener('click', nextLine);
+        window.addEventListener('resize', renderStaff);
 
         nextLine();
     });
