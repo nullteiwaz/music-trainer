@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五线谱随机读谱练习器</title>
+    <title>五线谱读谱练习</title>
     <!-- 引入专业乐谱渲染库 VexFlow -->
     <script src="https://cdn.jsdelivr.net/npm/vexflow@1.2.93/releases/vexflow-min.js"></script>
     <style>
@@ -37,6 +37,16 @@
             font-size: 22px;
             margin-bottom: 15px;
             color: #2c3e50;
+        }
+        .language-control { text-align: left; margin-bottom: 8px; }
+        .language-control select {
+            min-height: 36px;
+            padding: 4px 8px;
+            color: #1e293b;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
         }
         .stats {
             display: flex;
@@ -194,81 +204,89 @@
 <body>
 
 <div class="container">
-    <h1>五线谱读谱练习</h1>
+    <div class="language-control">
+        <select id="language-select" aria-label="界面语言" data-aria-label="language">
+            <option value="zh-CN" lang="zh-CN" selected>简体中文</option>
+            <option value="ja" lang="ja">日本語</option>
+            <option value="en" lang="en">English</option>
+        </select>
+    </div>
+    <h1 data-text="title">五线谱读谱练习</h1>
     
     <div class="stats">
-        <span>小节作答次数: <b id="total-count">0</b></span>
-        <span>正确率: <b id="accuracy">0%</b></span>
-        <span>连续答对小节: <b id="streak">0</b></span>
+        <span><span data-text="attempts">小节作答次数</span> <b id="total-count">0</b></span>
+        <span><span data-text="accuracy">正确率</span> <b id="accuracy">0%</b></span>
+        <span><span data-text="streak">连续答对小节</span> <b id="streak">0</b></span>
     </div>
 
     <!-- 控制设置面板 -->
     <div class="settings-panel">
         <div class="settings-row">
             <div class="settings-group">
-                <label for="clef-select">谱号：</label>
+                <label for="clef-select" data-text="clef">谱号</label>
                 <select id="clef-select">
-                    <option value="treble">高音谱号 (Treble)</option>
-                    <option value="bass">低音谱号 (Bass)</option>
+                    <option value="treble" data-text="treble">高音谱号</option>
+                    <option value="bass" data-text="bass">低音谱号</option>
                 </select>
             </div>
             <div class="settings-group">
-                <label for="range-select">音符范围：</label>
+                <label for="range-select" data-text="range">音符范围</label>
                 <select id="range-select">
-                    <option value="standard">标准音域 (五线谱内)</option>
-                    <option value="ledger" selected>包含加线 (含上下加线)</option>
-                    <option value="all">扩展全音域（上下各多两个音）</option>
+                    <option value="standard" data-text="standard">标准音域（五线谱内）</option>
+                    <option value="ledger" selected data-text="ledger">包含加线（含上下加线）</option>
+                    <option value="all" data-text="all">扩展全音域（上下各多两个音）</option>
                 </select>
             </div>
         </div>
         <div class="settings-row">
             <div class="settings-group">
-                <label for="key-select">调号：</label>
+                <label for="key-select" data-text="key">调号</label>
                 <select id="key-select"></select>
             </div>
             <div class="settings-group">
-                <label for="chord-select">和弦练习：</label>
+                <label for="chord-select" data-text="chords">和弦练习</label>
                 <select id="chord-select">
-                    <option value="off">关闭</option>
-                    <option value="2">穿插两个音（三度、五度）</option>
-                    <option value="3">穿插三和弦（含转位）</option>
-                    <option value="mixed">两个音和三和弦混合</option>
+                    <option value="off" data-text="off">关闭</option>
+                    <option value="2" data-text="dyads">穿插两个音（三度、五度）</option>
+                    <option value="3" data-text="triads">穿插三和弦（含转位）</option>
+                    <option value="mixed" data-text="mixed">两个音和三和弦混合</option>
                 </select>
             </div>
-            <label><input type="checkbox" id="chromatic"> 加入临时升降号</label>
+            <label><input type="checkbox" id="chromatic"> <span data-text="chromatic">加入临时升降号</span></label>
         </div>
         <div class="settings-row">
-            <span style="font-weight: 500; color: #475569;">选择允许出现的音符与休止符：</span>
+            <span style="font-weight: 500; color: #475569;" data-text="durations">选择允许出现的音符与休止符</span>
             <div class="checkbox-group">
-                <label><input type="checkbox" name="element" value="note-w"> 全音符(4拍)</label>
-                <label><input type="checkbox" name="element" value="note-h"> 二分音符(2拍)</label>
-                <label><input type="checkbox" name="element" value="note-q" checked> 四分音符(1拍)</label>
-                <label><input type="checkbox" name="element" value="note-8" checked> 八分音符(0.5拍)</label>
-                <label><input type="checkbox" name="element" value="note-16"> 十六分音符(0.25拍)</label>
-                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-w"> 全休止符</label>
-                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-h"> 二分休止符</label>
-                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-q" checked> 四分休止符</label>
-                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-8"> 八分休止符</label>
+                <label><input type="checkbox" name="element" value="note-w"> <span data-text="wholeNote">全音符（4拍）</span></label>
+                <label><input type="checkbox" name="element" value="note-h"> <span data-text="halfNote">二分音符（2拍）</span></label>
+                <label><input type="checkbox" name="element" value="note-q" checked> <span data-text="quarterNote">四分音符（1拍）</span></label>
+                <label><input type="checkbox" name="element" value="note-8" checked> <span data-text="eighthNote">八分音符（0.5拍）</span></label>
+                <label><input type="checkbox" name="element" value="note-16"> <span data-text="sixteenthNote">十六分音符（0.25拍）</span></label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-w"> <span data-text="wholeRest">全休止符</span></label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-h"> <span data-text="halfRest">二分休止符</span></label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-q" checked> <span data-text="quarterRest">四分休止符</span></label>
+                <label style="color: #0284c7; font-weight: 500;"><input type="checkbox" name="element" value="rest-8"> <span data-text="eighthRest">八分休止符</span></label>
             </div>
         </div>
     </div>
 
     <!-- 宽幅专业 VexFlow 乐谱渲染区 -->
-    <div id="staff-container" title="点击可连续重听发音">
+    <div id="staff-container" title="重听整行" data-title="replay">
         <div id="vexflow-canvas"></div>
+        <p id="score-error" data-text="scoreUnavailable" hidden>乐谱组件加载失败，请检查网络后刷新页面。</p>
     </div>
     
     <div class="score-controls">
-        <button type="button" class="btn-note" id="replay">重听整行</button>
-        <button type="button" class="btn-note" id="new-line">换一行</button>
-        <label><input type="checkbox" id="follow-score" checked> 跟谱光标</label>
+        <button type="button" class="btn-note" id="replay" data-text="replay">重听整行</button>
+        <button type="button" class="btn-note" id="new-line" data-text="newLine">换一行</button>
+        <label><input type="checkbox" id="follow-score" checked> <span data-text="cursor">跟谱光标</span></label>
     </div>
     <div class="progress-indicator" id="progress-text" role="status"></div>
-    <div class="tip">和弦从低到高输入。遇到升音或降音，先选 ♯ 或 ♭，再按音名。</div>
-    <div class="accidentals" id="accidentals" role="group" aria-label="下一个答案的升降号" hidden>
-        <button type="button" class="btn-note" data-alter="-1" aria-label="降半音" aria-pressed="false">♭</button>
-        <button type="button" class="btn-note" data-alter="0" aria-label="自然音" aria-pressed="true">♮</button>
-        <button type="button" class="btn-note" data-alter="1" aria-label="升半音" aria-pressed="false">♯</button>
+    <div class="tip" data-text="tip">和弦从低到高输入。遇到升音或降音，先选 ♯ 或 ♭，再按音名。</div>
+    <div class="accidentals" id="accidentals" role="group" aria-label="下一个答案的升降号" data-aria-label="accidentalGroup" hidden>
+        <button type="button" class="btn-note" data-alter="-1" aria-label="降半音" data-aria-label="flat" aria-pressed="false">♭</button>
+        <button type="button" class="btn-note" data-alter="0" aria-label="自然音" data-aria-label="natural" aria-pressed="true">♮</button>
+        <button type="button" class="btn-note" data-alter="1" aria-label="升半音" data-aria-label="sharp" aria-pressed="false">♯</button>
     </div>
     <div class="buttons">
         <button class="btn-note" data-note="C">C</button>
@@ -302,6 +320,59 @@
         const pick = items => items[Math.floor(Math.random() * items.length)];
         const feedback = byId('feedback');
         const keySelect = byId('key-select');
+        const languageSelect = byId('language-select');
+        const languageColumns = { 'zh-CN': 0, ja: 1, en: 2 };
+        const japaneseNoteNames = { C: 'ハ', D: 'ニ', E: 'ホ', F: 'ヘ', G: 'ト', A: 'イ', B: 'ロ' };
+        const messages = {
+            title: ["五线谱读谱练习","五線譜の読譜練習","Sight-reading practice"],
+            language: ["界面语言","表示言語","Interface language"],
+            attempts: ["小节作答次数","小節の解答回数","Bar attempts"],
+            accuracy: ["正确率","正答率","Accuracy"],
+            streak: ["连续答对小节","連続正解の小節数","Bar streak"],
+            clef: ["谱号","音部記号","Clef"],
+            treble: ["高音谱号","ト音記号","Treble clef"],
+            bass: ["低音谱号","ヘ音記号","Bass clef"],
+            range: ["音符范围","音域","Note range"],
+            standard: ["标准音域（五线谱内）","標準（五線内）","Within the staff"],
+            ledger: ["包含加线（含上下加线）","上下の加線を含む","Include ledger lines"],
+            all: ["扩展全音域（上下各多两个音）","拡張（上下に各2音追加）","Extended (2 extra notes each way)"],
+            key: ["调号","調号","Key signature"],
+            major: ["{note} 大调","{note}長調","{note} major"],
+            chords: ["和弦练习","和音練習","Chord practice"],
+            off: ["关闭","オフ","Off"],
+            dyads: ["穿插两个音（三度、五度）","2音の和音（三度・五度）を交える","Mix in intervals (3rds and 5ths)"],
+            triads: ["穿插三和弦（含转位）","三和音（転回形を含む）を交える","Mix in triads (with inversions)"],
+            mixed: ["两个音和三和弦混合","2音の和音と三和音を混ぜる","Mix intervals and triads"],
+            chromatic: ["加入临时升降号","臨時記号を含める","Include accidentals"],
+            durations: ["选择允许出现的音符与休止符","出題する音符と休符","Notes and rests to include"],
+            wholeNote: ["全音符（4拍）","全音符（4拍）","Whole note (4 beats)"],
+            halfNote: ["二分音符（2拍）","二分音符（2拍）","Half note (2 beats)"],
+            quarterNote: ["四分音符（1拍）","四分音符（1拍）","Quarter note (1 beat)"],
+            eighthNote: ["八分音符（0.5拍）","八分音符（0.5拍）","Eighth note (½ beat)"],
+            sixteenthNote: ["十六分音符（0.25拍）","十六分音符（0.25拍）","Sixteenth note (¼ beat)"],
+            wholeRest: ["全休止符","全休符","Whole rest"],
+            halfRest: ["二分休止符","二分休符","Half rest"],
+            quarterRest: ["四分休止符","四分休符","Quarter rest"],
+            eighthRest: ["八分休止符","八分休符","Eighth rest"],
+            replay: ["重听整行","この段を聴く","Play line"],
+            newLine: ["换一行","次の段を出す","New line"],
+            cursor: ["跟谱光标","読譜カーソル","Score cursor"],
+            tip: ["和弦从低到高输入。遇到升音或降音，先选 ♯ 或 ♭，再按音名。","和音は低い音から順に入力します。シャープやフラットが付く音は、先に ♯ または ♭ を選びます。","Enter chord notes from lowest to highest. For a sharp or flat note, select ♯ or ♭ before the note letter."],
+            accidentalGroup: ["下一个答案的升降号","次の解答の変化記号","Accidental for the next answer"],
+            flat: ["降半音","フラット","Flat"],
+            natural: ["自然音","ナチュラル","Natural"],
+            sharp: ["升半音","シャープ","Sharp"],
+            scoreUnavailable: ["乐谱组件加载失败，请检查网络后刷新页面。","楽譜を読み込めませんでした。接続を確認し、ページを再読み込みしてください。","The score could not load. Check your connection and reload the page."],
+            allRests: ["本行都是休止符，可以点「换一行」。","この段は休符のみです。「次の段を出す」を選んでください。","This line contains only rests. Select “New line” to continue."],
+            lineFinished: ["本行已完成","この段は完了しました","Line complete"],
+            position: ["第 {bar} / {bars} 小节 · 第 {question} / {questions} 题","第 {bar} / {bars} 小節 · 第 {question} / {questions} 問","Bar {bar} of {bars} · Question {question} of {questions}"],
+            chordProgress: ["已答 {answered} / {count} 音","{answered} / {count} 音を入力済み","{answered} of {count} notes entered"],
+            retry: ["这里是 {note}。从第 {bar} 小节开头重试。","正解は {note} です。第 {bar} 小節の最初からやり直します。","The correct note is {note}. Try again from the start of bar {bar}."],
+            continueChord: ["继续输入上方的音。","次に高い音を入力してください。","Enter the next higher note."],
+            correct: ["正确！","正解！","Correct!"],
+        };
+        let language = 'zh-CN';
+        let feedbackMessage = null;
         const followScore = byId('follow-score');
         const questionMarks = new Map();
         let activeMark = null;
@@ -311,8 +382,42 @@
         const naturalSemitones = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
         for (const key of majorKeys) {
-            const label = key.replace('b', '♭').replace('#', '♯') + ' 大调';
-            keySelect.add(new Option(label, key, key === 'C', key === 'C'));
+            keySelect.add(new Option(key, key, key === 'C', key === 'C'));
+        }
+
+        function translate(key, values = {}) {
+            return messages[key][languageColumns[language]].replace(/\{(\w+)\}/g, (token, name) => values[name] ?? token);
+        }
+
+        function keyLabel(key) {
+            let note = key.replace('b', '♭').replace('#', '♯');
+            if (language === 'ja') {
+                const prefix = { b: '変', '#': '嬰' }[key[1]] ?? '';
+                note = prefix + japaneseNoteNames[key[0]];
+            }
+            return translate('major', { note });
+        }
+
+        function setFeedback(key, values) {
+            feedbackMessage = key ? { key, values } : null;
+            feedback.textContent = key ? translate(key, values) : '';
+        }
+
+        function applyLanguage() {
+            language = languageSelect.value;
+            document.documentElement.lang = language;
+            document.title = translate('title');
+            document.querySelectorAll('[data-text]').forEach(element => {
+                element.textContent = translate(element.dataset.text);
+            });
+            for (const [attribute, property] of [['aria-label', 'ariaLabel'], ['title', 'title']]) {
+                document.querySelectorAll('[data-' + attribute + ']').forEach(element => {
+                    element.setAttribute(attribute, translate(element.dataset[property]));
+                });
+            }
+            for (const option of keySelect.options) option.textContent = keyLabel(option.value);
+            setFeedback(feedbackMessage?.key, feedbackMessage?.values);
+            if (currentScore) updateProgressText();
         }
 
         function getKeyAlterations(key) {
@@ -555,7 +660,7 @@
         function nextLine() {
             clearTimeout(nextLineTimer);
             stopReplay();
-            feedback.textContent = '';
+            setFeedback();
             measureIndex = 0;
             questionIndex = 0;
             pitchIndex = 0;
@@ -590,10 +695,8 @@
             container.replaceChildren();
             questionMarks.clear();
             activeMark = null;
-            if (!window.Vex) {
-                container.textContent = '乐谱组件加载失败，请检查网络后刷新页面。';
-                return;
-            }
+            byId('score-error').hidden = Boolean(window.Vex);
+            if (!window.Vex) return;
             const { clef, key, measures } = currentScore;
             const VF = window.Vex.Flow;
             const mobile = mobileLayout();
@@ -671,13 +774,17 @@
             const progress = byId('progress-text');
             const measure = questions[measureIndex];
             if (!hasQuestions) {
-                progress.textContent = '本行都是休止符，可以点「换一行」。';
+                progress.textContent = translate('allRests');
             } else if (!measure) {
-                progress.textContent = '本行已完成';
+                progress.textContent = translate('lineFinished');
             } else {
                 const count = measure[questionIndex].pitches.length;
-                const position = '第 ' + (measureIndex + 1) + ' / ' + questions.length + ' 小节 · 第 ' + (questionIndex + 1) + ' / ' + measure.length + ' 题';
-                progress.textContent = count > 1 ? position + ' · 已答 ' + pitchIndex + ' / ' + count + ' 音' : position;
+                const position = translate('position', {
+                    bar: measureIndex + 1, bars: questions.length, question: questionIndex + 1, questions: measure.length
+                });
+                progress.textContent = count > 1
+                    ? position + ' · ' + translate('chordProgress', { answered: pitchIndex, count })
+                    : position;
             }
             updateScoreCursor();
         }
@@ -694,7 +801,7 @@
                 total++;
                 streak = 0;
                 feedback.className = 'wrong';
-                feedback.textContent = '这里是 ' + expected.name + accidentalSigns[expected.alter] + '。从第 ' + (measureIndex + 1) + ' 小节开头重试。';
+                setFeedback('retry', { note: expected.name + accidentalSigns[expected.alter], bar: measureIndex + 1 });
                 questionIndex = 0;
                 pitchIndex = 0;
                 updateStats();
@@ -705,13 +812,13 @@
             pitchIndex++;
             feedback.className = 'correct';
             if (pitchIndex < question.pitches.length) {
-                feedback.textContent = '继续输入上方的音。';
+                setFeedback('continueChord');
             } else {
                 stopReplay();
                 playPitches(question.pitches, question.beats * 0.36);
                 pitchIndex = 0;
                 questionIndex++;
-                feedback.textContent = '正确！';
+                setFeedback('correct');
                 if (questionIndex === measure.length) {
                     total++;
                     correct++;
@@ -721,7 +828,7 @@
                     measureIndex++;
                     skipEmptyMeasures();
                     if (measureIndex === currentScore.questions.length) {
-                        feedback.textContent = '本行全部答完！';
+                        setFeedback('lineFinished');
                         nextLineTimer = setTimeout(nextLine, Math.max(1400, question.beats * 400));
                     }
                 }
@@ -745,9 +852,11 @@
         byId('staff-container').addEventListener('click', playAllMeasures);
         byId('replay').addEventListener('click', playAllMeasures);
         followScore.addEventListener('change', updateScoreCursor);
+        languageSelect.addEventListener('change', applyLanguage);
         byId('new-line').addEventListener('click', nextLine);
         window.addEventListener('resize', renderStaff);
 
+        applyLanguage();
         nextLine();
     });
 </script>
